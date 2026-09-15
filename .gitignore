@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environment (uv)
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment variables
+.env
+
+# Raw dataset (216 MB, download from Harvard Dataverse)
+dataverse_files/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
