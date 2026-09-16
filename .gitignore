@@ -26,3 +26,6 @@ dataverse_files/
 .DS_Store
 .vscode/
 .idea/
+
+# Generated datasets (re-create with the preprocessing pipeline)
+data/
