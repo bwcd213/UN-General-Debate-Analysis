@@ -185,7 +185,120 @@ from un_general_debate_analysis.preprocessing import merge_country_year, sentenc
   absolute, so they work whichever directory your kernel started in.
 - Shared, reusable logic belongs in a `.py` module; exploration belongs in your notebook.
 
-## 8. Caveats worth knowing for the write-up
+## 8. Git workflow
+
+`main` is what everyone clones from, so nobody commits to it directly — you work on a
+branch, push it, and open a pull request. Branches keep everyone's notebooks and
+lexicon edits from landing on top of each other.
+
+### Start a piece of work
+
+Always branch off an up-to-date `main`:
+
+```bash
+git checkout main
+git pull                          # fetch + fast-forward main to origin/main
+git checkout -b eda-george        # create the branch and switch to it
+```
+
+Name branches after what they hold: `eda-<yourname>` for your notebook,
+`lexicon-sdg16` or `fix-speaker-roles` for changes to `src/`.
+
+Handy: `git switch <branch>` moves between existing branches, `git branch` lists yours,
+`git status` tells you where you are and what's changed.
+
+### Commit
+
+```bash
+git status                        # what changed
+git diff                          # the actual changes, unstaged
+git add notebooks/eda-george.ipynb src/un_general_debate_analysis/lexicons.py
+git diff --staged                 # review exactly what you're about to commit
+git commit -m "Add SDG16 sentence-level plots"
+```
+
+- **Stage files by name, not `git add .`** — `data/` is gitignored, but stray exports,
+  `.DS_Store` and scratch scripts are easy to sweep up by accident.
+- **Clear notebook outputs before committing** (Kernel → Restart & Clear Output).
+  Committed outputs make the JSON diff unreadable and bloat the repo.
+- Small commits with a one-line message in the imperative ("Add…", "Fix…", "Rename…")
+  are easier to review and to undo than one giant one.
+
+Forgot a file, or want to reword the last message? `git commit --amend` — but only on
+commits you haven't pushed yet.
+
+### Push and open a PR
+
+```bash
+git push -u origin eda-george     # -u only the first time; afterwards just `git push`
+```
+
+Then open the pull request on GitHub (or `gh pr create`). Once it's merged, delete the
+branch and start the next piece of work from a fresh `main`.
+
+### Stay in sync: pull and rebase
+
+While you work, other people are merging into `main`. Before you push — and any time you
+want their changes — replay your commits on top of the latest `main`:
+
+```bash
+git fetch origin                  # update origin/main without touching your files
+git rebase origin/main            # move your commits on top of it
+```
+
+Rebase gives a straight, readable history instead of merge commits everywhere. The rule
+that keeps it safe: **rebase your own unpushed work, never shared `main`.** If you've
+already pushed the branch and then rebase it, the push needs
+`git push --force-with-lease` (which refuses if someone else pushed to your branch in the
+meantime — use it instead of plain `--force`).
+
+To update `main` itself, a plain `git pull` is fine — you never commit there, so it just
+fast-forwards.
+
+### When a rebase stops on a conflict
+
+Git pauses and marks the clashing files:
+
+```bash
+git status                        # lists "both modified" files
+# edit each one, deleting the <<<<<<< ======= >>>>>>> markers
+git add <file>
+git rebase --continue             # repeat until it finishes
+git rebase --abort                # or: back out, nothing changed
+```
+
+Conflicting `.ipynb` files are the painful case — the conflict is in JSON, not in your
+code. This is why everyone has their own notebook (§7). If it happens anyway, the
+quickest fix is usually to keep one side wholesale:
+
+```bash
+git checkout --ours notebooks/eda-george.ipynb     # the version already on main
+git checkout --theirs notebooks/eda-george.ipynb   # your incoming commit
+```
+
+(During a *rebase* "ours" and "theirs" are swapped relative to what you'd expect — ours
+is the branch you're replaying onto, theirs is your commit.)
+
+### Getting out of trouble
+
+```bash
+git restore <file>                # throw away uncommitted changes to a file
+git restore --staged <file>       # unstage, keep the edits
+git stash / git stash pop         # park uncommitted work to switch branches
+git reset --soft HEAD~1           # undo the last commit, keep the changes staged
+git log --oneline --graph --all   # see where every branch actually is
+git reflog                        # every HEAD you've been at — recovers "lost" commits
+```
+
+Nothing that's been committed is really lost; `git reflog` plus
+`git checkout <hash>` gets it back. Avoid `git reset --hard` unless you're sure — that
+one *does* discard work.
+
+`data/` is gitignored, so none of this touches your processed CSVs. Switching branches
+never makes you re-run the pipeline — unless the branch changes `lexicons.py` or
+`preprocessing.py`, in which case re-run it (§3).
+
+## 9. Caveats worth knowing for the write-up
 
 - **Session 80 (2025) is different in kind**: the UN published no validated transcripts,
   so the whole session was transcribed from interpretation audio with Whisper. Expect
