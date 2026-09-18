@@ -9,16 +9,17 @@ analysis-ready datasets to ``data/processed/``:
    for every lexicon in ``lexicons.py``, both how often its terms occur
    (``<lexicon>_count``, counted in words) and how its sentences are
    coloured (``<lexicon>_positive_sentences`` and friends, counted in
-   sentences). So it answers both "how much does a country talk about
-   trust?" and "does it talk about trust in a hopeful or a worried tone?".
+    sentences). It also includes binary education and technology topic
+    features, including average sentiment and same-sentence overlap.
    ``term_counts`` is a JSON dict of how often each lexicon term occurs in
    the speech (load it with ``json.loads``).
    Key: (country_code, year). This is the table to merge with external
    country-year datasets (World Happiness Report, trade data, Our World in
    Data, ...); see ``merge_country_year``.
 
-   It is wide (one block of four columns per lexicon). For the sentence-level
-   view on its own, select ``META_COLUMNS + sentence_count_columns()``.
+    It is wide (one block of four columns per lexicon, plus the education and
+    technology focus features). For the sentence-level view on its own, select
+    ``META_COLUMNS + sentence_count_columns()``.
 
 2. ``speeches_text.csv.gz``
    The cleaned, readable text and the lemmatised, stop-word-free tokens of
@@ -135,6 +136,9 @@ PRESIDING_OFFICER_SENTENCE = re.compile(
 # neutral in between. Only the two outer classes get their own columns; the
 # neutral ones are visible as the gap between them and the totals.
 REPORTED_SENTIMENTS = ("positive", "negative")
+
+# Topic features exported for the education and technology analysis.
+FOCUS_LEXICONS = ("technology", "education")
 
 # The country-year dimensions every output table starts with.
 META_COLUMNS = [
@@ -433,6 +437,10 @@ def analyse_speech(args: tuple[str, int]) -> dict:
     sentiment_sentences: Counter[str] = Counter()  # sentiment -> n sentences
     lexicon_sentences: Counter[tuple[str, str]] = Counter()  # (lexicon, sentiment) -> n
     lexicon_totals: Counter[str] = Counter()  # lexicon -> n sentences, any sentiment
+    topic_sentiment_sums: dict[str, float] = defaultdict(float)
+    topic_sentence_counts: Counter[str] = Counter()
+    overlap_sentiment_sum = 0.0
+    overlap_sentence_count = 0
 
     for sentence in sentences:
         # --- Word tokenisation (Treebank), lemmatisation, phrase merging ---
@@ -460,6 +468,13 @@ def analyse_speech(args: tuple[str, int]) -> dict:
         for lexicon in lexicons_here:
             lexicon_sentences[(lexicon, sentiment)] += 1
             lexicon_totals[lexicon] += 1
+        for lexicon in FOCUS_LEXICONS:
+            if lexicon in lexicons_here:
+                topic_sentiment_sums[lexicon] += score
+                topic_sentence_counts[lexicon] += 1
+        if all(lexicon in lexicons_here for lexicon in FOCUS_LEXICONS):
+            overlap_sentiment_sum += score
+            overlap_sentence_count += 1
 
     n_sentences = len(sentences)
     n_words = len(words)
@@ -499,6 +514,19 @@ def analyse_speech(args: tuple[str, int]) -> dict:
             result[f"{lexicon}_{sentiment}_sentences"] = lexicon_sentences[(lexicon, sentiment)]
         # Every sentence mentioning the lexicon, neutral ones included
         result[f"{lexicon}_sentences"] = lexicon_totals[lexicon]
+    for lexicon in FOCUS_LEXICONS:
+        result[lexicon] = int(topic_sentence_counts[lexicon] > 0)
+        result[f"{lexicon}_sentiment"] = (
+            topic_sentiment_sums[lexicon] / topic_sentence_counts[lexicon]
+            if topic_sentence_counts[lexicon]
+            else 0.0
+        )
+    result["technology_education"] = int(overlap_sentence_count > 0)
+    result["technology_education_sentiment"] = (
+        overlap_sentiment_sum / overlap_sentence_count
+        if overlap_sentence_count
+        else 0.0
+    )
     return result
 
 

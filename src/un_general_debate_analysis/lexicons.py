@@ -51,43 +51,29 @@ THEME_LEXICONS: dict[str, list[str]] = {
 
 # --- One lexicon per Sustainable Development Goal ---
 SDG_LEXICONS: dict[str, list[str]] = {
-    "sdg04_education": [
+    "education": [
         "education", "educational", "school", "schooling", "literacy",
         "illiteracy", "teacher", "student", "pupil", "university",
-        "learning", "curriculum", "scholarship",
+        "learning", "curriculum", "scholarship", "classroom", "teacher training",
+        "vocational training", "skills training", "higher education",
+        "primary education", "secondary education", "early childhood education",
+        "technical education", "inclusive education", "quality education",
+        "distance learning", "online learning", "educational opportunity",
+        "school enrollment", "school enrolment", "dropout", "child education",
     ],
-    "sdg05_gender_equality": [
-        "gender", "gender equality", "women", "girls", "empowerment of women",
-        "women's empowerment", "gender-based violence", "sexual violence",
-        "genital mutilation", "femicide", "feminist", "equal pay",
-        "maternal",
+    "technology": [
+        "technology", "computer", "innovation", "research and development",
+        "computation", "digital", "digitalisation", "digitalization",
+        "information technology", "communication technology", 
+        "information and communication technologies", "ict", "internet access", "broadband",
+        "connectivity", "digital infrastructure", "digital economy", "e-commerce",
+        "open data", "data science", "big data", "machine learning", "algorithm",
+        "cloud computing", "renewable technology", "clean technology",
+        "technology transfer", "scientific research", "technological development",
+        "research capacity", "innovation ecosystem", "startup", "entrepreneurship",
+        "ai", "artificial intelligence", "cloud", "network",
     ],
-    "sdg08_decent_work": [
-        "employment", "unemployment", "youth unemployment", "job", "worker",
-        "labour", "labor", "decent work", "forced labour", "child labour",
-        "economic growth", "wage", "entrepreneurship",
-    ],
-    "sdg09_industry_innovation": [
-        "infrastructure", "industrialization", "industrialisation",
-        "industrial", "industry", "manufacturing", "connectivity",
-        "broadband", "transport", "railway", "innovation",
-        "research and development",
-    ],
-    "sdg16_peace_justice": [
-        "peace", "peaceful", "peacebuilding", "peacekeeping", "conflict",
-        "armed conflict", "war", "violence", "terrorism", "terrorist",
-        "genocide", "justice", "impunity", "rule of law", "human rights",
-        "corruption", "institution", "democracy", "democratic", "governance",
-        "disarmament", "weapon", "nuclear weapon", "arms race",
-        "arms control", "arms trade", "trafficking",
-    ],
-    "sdg17_partnerships": [
-        "partnership", "global partnership", "development assistance",
-        "official development assistance", "oda", "aid", "donor", "debt",
-        "debt relief", "trade", "investment", "technology transfer",
-        "capacity building", "south-south cooperation",
-        "triangular cooperation", "financing for development",
-    ],
+
 }
 
 # All lexicons the pipeline will count, in output column order.

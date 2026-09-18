@@ -93,6 +93,11 @@ has ~50 rows instead of ~11k, someone ran it with a limit — just re-run withou
   `mean_sentence_length`.
 - Sentiment: `sentiment_compound_mean`, `share_positive_sentences`,
   `share_negative_sentences` (VADER, scored per sentence, thresholds ±0.05).
+- Education and technology focus: `technology` and `education` are binary
+  topic-presence flags; `technology_sentiment` and `education_sentiment` are
+  average VADER compound scores for matching sentences; and
+  `technology_education` plus `technology_education_sentiment` describe
+  sentences mentioning both topics.
 - Per lexicon, a block of four adjacent columns — e.g. for `theme_trust`:
   `theme_trust_count` (how often its terms occur, counted in **words**),
   `theme_trust_positive_sentences`, `theme_trust_negative_sentences` and
