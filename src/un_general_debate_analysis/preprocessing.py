@@ -110,7 +110,7 @@ UN_PROCEDURAL_WORDS = [
     "united", "nations", "general", "assembly", "president", "secretary",
     "session", "delegation", "excellency", "distinguished", "madam", "sir",
     "mr", "mrs", "ms", "ladies", "gentlemen", "thank", "also", "would",
-    "must", "shall", "may", "us",
+    "must", "shall", "may", "us" , "state" , "country", "people", "world"
 ]
 
 # Sentences that belong to the presiding officer rather than the speaker
