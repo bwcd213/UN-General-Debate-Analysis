@@ -10,6 +10,12 @@ analysis-ready CSVs, keyed by `(country_code, year)` so they merge cleanly with 
 country-year datasets (World Happiness Report, trade data, Our World in Data, …).
 See [ASSIGNMENT.md](ASSIGNMENT.md) for the full brief.
 
+The analysis itself is in [notebooks/technology-sdg9.ipynb](notebooks/technology-sdg9.ipynb):
+**SDG 9 (Industry, Innovation and Infrastructure)**, asking how the General Debate's
+technology talk moved from *transfer* to *access* to *risk* over eighty years, and how
+well a speech predicts its country's internet penetration (§8), its connectivity growth
+(§9) and its R&D spending (§10).
+
 ---
 
 ## 1. Setup
@@ -79,7 +85,7 @@ has ~50 rows instead of ~11k, someone ran it with a limit — just re-run withou
 
 | File | Grain | What's in it |
 | --- | --- | --- |
-| `speeches_features.csv` | one row per speech (country-year) | metadata, text stats, VADER sentiment, per-lexicon word **and** sentence counts, `term_counts` — 56 columns |
+| `speeches_features.csv` | one row per speech (country-year) | metadata, text stats, VADER sentiment, per-lexicon word **and** sentence counts, `term_counts` — 107 columns |
 | `speeches_text.csv.gz` | one row per speech | `text_clean` (readable) and `tokens_clean` (lemmatised, stop-words removed) — for TF-IDF, topic models, word clouds |
 | `lexicon_terms_by_year.csv` | year × lexicon × term | raw `count` — shows *which* words drive a trend |
 
@@ -93,11 +99,16 @@ has ~50 rows instead of ~11k, someone ran it with a limit — just re-run withou
   `mean_sentence_length`.
 - Sentiment: `sentiment_compound_mean`, `share_positive_sentences`,
   `share_negative_sentences` (VADER, scored per sentence, thresholds ±0.05).
-- Education and technology focus: `technology` and `education` are binary
-  topic-presence flags; `technology_sentiment` and `education_sentiment` are
-  average VADER compound scores for matching sentences; and
-  `technology_education` plus `technology_education_sentiment` describe
-  sentences mentioning both topics.
+- Per lexicon, a binary presence flag and a mean sentiment: `technology` is 1 when
+  the speech has at least one technology sentence, and `technology_sentiment` is the
+  mean VADER compound score of those sentences (0.0 when there are none). Same for
+  every other lexicon.
+- Per pair in `CO_OCCURRENCE_PAIRS`, the same three things for sentences that mention
+  **both** — e.g. `technology_frame_peril` (0/1),
+  `technology_frame_peril_sentences` (how many) and
+  `technology_frame_peril_sentiment`. This is what makes the promise/peril framing
+  measurable: a bare count of "threat" is useless, a count of "threat *in a sentence
+  that also mentions technology*" is not.
 - Per lexicon, a block of four adjacent columns — e.g. for `theme_trust`:
   `theme_trust_count` (how often its terms occur, counted in **words**),
   `theme_trust_positive_sentences`, `theme_trust_negative_sentences` and
@@ -114,12 +125,30 @@ A sentence is counted once per lexicon it mentions, and neutral sentences have n
 of their own (they're the gap between a total and its positive + negative parts). So the
 lexicon columns neither sum to `n_sentences` nor are bounded by it.
 
-56 columns is a lot to eyeball. To see just the metadata plus the sentence-level columns:
+107 columns is a lot to eyeball. To see just the metadata plus the sentence-level
+columns:
 
 ```python
 from un_general_debate_analysis.preprocessing import META_COLUMNS, sentence_count_columns
-df[META_COLUMNS + sentence_count_columns()].head()   # 39 columns instead of 56
+df[META_COLUMNS + sentence_count_columns()].head()
 ```
+
+### Getting the sentences back
+
+`speeches_features.csv` says *how many* sentences mention a lexicon;
+[subcorpus.py](src/un_general_debate_analysis/subcorpus.py) gives you the sentences
+themselves, labelled with every lexicon they matched and their VADER score. That is
+how you check a dictionary instead of trusting it:
+
+```python
+from un_general_debate_analysis.subcorpus import lexicon_sentences
+
+texts = pd.read_csv(OUT_DIR / "speeches_text.csv.gz")
+tech = lexicon_sentences(texts.query("year >= 1990"), "technology")
+tech[tech["frame_peril"] == 1]["sentence"].sample(10)
+```
+
+It re-tokenises from scratch, so budget ~5 s per 1,000 speeches.
 
 ## 5. Merging in external datasets
 
@@ -140,19 +169,70 @@ contains dissolved states (`CSK`, `DDR`, `YUG`, `YMD`) and `EU`, which are hardc
 `preprocessing.py` because they're absent from the UNSD table — most external datasets
 won't have them either, so expect NaNs there.
 
+### The datasets we actually use
+
+[external.py](src/un_general_debate_analysis/external.py) downloads and caches them, so
+nobody has to hunt for a CSV twice. Everything comes back keyed by
+`(country_code, year)` with ISO3 codes:
+
+```python
+from un_general_debate_analysis.external import load_all, world_bank_indicators, egdi
+
+panel = load_all()                      # all of the below, outer-joined
+features.merge(panel, on=["country_code", "year"], how="left")
+```
+
+| Function | Source | Coverage |
+| --- | --- | --- |
+| `world_bank_indicators()` | World Bank WDI API — **connectivity** (internet users %, mobile and broadband per 100, secure servers), **technology investment** (R&D % of GDP = SDG 9.5.1, researchers per million, patents, scientific articles, high-tech and ICT-service exports), and the controls (GDP per capita PPP, population) | 1960–2025, ~240 countries |
+| `egdi()` | UN E-Government Development Index (World Bank Data360; reads `data/raw/UN_EGDI_EGDI.csv` if present) | biennial 2003–2024 |
+| `world_happiness()` | World Happiness Report `DataForTable2.1.xls` — life ladder, perceived corruption, social support | 2005–2024 |
+| `development_groups()` | UNSD M49 — LDC / landlocked / small-island flags | country-level |
+
+Downloads are cached to `data/external/` (gitignored); pass `refresh=True` to re-fetch.
+The World Happiness Report is keyed by country *name*, so `external.py` resolves names
+to ISO3 against the UNSD table plus a fix-up table; four names stay unmatched
+(Hong Kong, Kosovo, Somaliland, Taiwan) and none of them give General Debate speeches.
+
 ## 6. Changing what we measure
 
 The topic dictionaries live in [lexicons.py](src/un_general_debate_analysis/lexicons.py).
-Nine lexicons currently: `theme_trust`, `theme_transformation`, `theme_multilateralism`,
-and `sdg04_education`, `sdg05_gender_equality`, `sdg08_decent_work`,
-`sdg09_industry_innovation`, `sdg16_peace_justice`, `sdg17_partnerships`.
+Twelve lexicons currently, in four groups:
+
+| Group | Lexicons | What it is for |
+| --- | --- | --- |
+| Theme | `theme_trust`, `theme_transformation`, `theme_multilateralism` | this year's GA theme |
+| **SDG 9 facets** | `tech_access`, `tech_frontier`, `tech_security`, `tech_governance`, `tech_economy` | *which* technology a speech is talking about |
+| **Framing** | `frame_promise`, `frame_peril` | *how* it is framed — only meaningful inside another lexicon's sentences |
+| SDG topics | `technology`, `education` | the umbrella topics |
+
+`technology` is **built as the union of the five `tech_*` facets**, not written out by
+hand — see the gotcha below for why that is not optional.
 
 To add or change terms: write them in plain English (`"climate change"`,
 `"gender-based violence"`). They go through the same tokenising and lemmatising as the
-speeches, so don't pre-lemmatise — `"women"` already matches `"woman"`. Multi-word terms
-are merged into a single token and the longest phrase wins. `NEUTRAL_PHRASES` at the
-bottom of the file kills false positives (e.g. `"trust territory"`, the colonial
-trusteeship system, is not about *trust*).
+speeches, so don't pre-lemmatise — `"women"` already matches `"woman"`.
+
+### Three traps in the matching
+
+1. **A phrase hides the single words inside it.** Multi-word terms are merged into one
+   token and the longest phrase wins, so once `"digital divide"` is registered anywhere,
+   those sentences produce the token `digital_divide` and stop matching a bare
+   `"digital"` entry in another lexicon. If a phrase belongs to the umbrella lexicon,
+   it has to be listed there too. (This silently cost the old `technology` lexicon
+   every mention of `internet`, `cyber` and `digital divide`.)
+2. **Tokens are lowercased and stripped of non-letters.** `"AI"` becomes `ai` and is
+   then indistinguishable from OCR noise; `"e-commerce"` loses the single-letter `e`
+   and matches every mention of *commerce*. `TERM_NOTES` at the bottom of the file
+   records each term dropped for this reason and why, so the decision is not
+   re-litigated.
+3. **Common words need a context.** `"threat"` on its own measures nothing. Add the
+   pair to `CO_OCCURRENCE_PAIRS` instead and the pipeline counts sentences that mention
+   *both* lexicons — that is how `technology_frame_peril_sentences` is built.
+
+`NEUTRAL_PHRASES` kills the remaining false positives (e.g. `"trust territory"`, the
+colonial trusteeship system, is not about *trust*; `"quantum leap"` is not about
+quantum computing).
 
 **Re-run the pipeline after editing lexicons** — the counts are baked into the CSVs.
 
@@ -167,7 +247,10 @@ trusteeship system, is not about *trust*).
 │   └── template.ipynb               # copy this to eda-<yourname>.ipynb
 └── src/un_general_debate_analysis/  # the installed package
     ├── preprocessing.py             # the pipeline (read its module docstring first)
-    └── lexicons.py                  # keyword dictionaries
+    ├── lexicons.py                  # keyword dictionaries
+    ├── external.py                  # download + cache the external country-year data
+    ├── geonames.py                  # blocklists that strip country identity out of the text
+    └── subcorpus.py                 # pull the matching sentences back out of the corpus
 ```
 
 `src/<package>/` is a standard Python src-layout, and `uv sync` installs it into `.venv`.
@@ -183,7 +266,8 @@ from un_general_debate_analysis.preprocessing import merge_country_year, sentenc
   on someone else's outputs matching yours — if you change `lexicons.py`, say so, because
   everyone then needs to re-run.
 - **One notebook per person.** Start by copying `notebooks/template.ipynb` to
-  `notebooks/eda-<yourname>.ipynb` — it loads the tables and sets up the imports. Merging
+  `notebooks/eda-<yourname>.ipynb` — it loads the tables and sets up the imports.
+  `notebooks/technology-sdg9.ipynb` is the SDG 9 analysis (exploratory + predictive). Merging
   two people's edits to the same `.ipynb` is miserable (the diff is JSON with embedded
   outputs), so don't share one. Clear outputs before committing.
 - **Get paths from the package, not from `../data/...`.** `OUT_DIR` and `RAW_DIR` are
@@ -312,7 +396,32 @@ never makes you re-run the pipeline — unless the branch changes `lexicons.py` 
 - **Pre-1994 speaker posts** are inconsistently recorded in the UN data, so
   `speaker_role` is `unknown` for many early speeches.
 - Older speeches come from OCR'd PDFs; the cleaner removes page headers, paragraph
-  numbers and line-break hyphenation, but artefacts survive.
+  numbers and line-break hyphenation, but artefacts survive. This is what makes short
+  acronyms unusable as lexicon terms — see `TERM_NOTES` in `lexicons.py`.
+- **A dictionary is not a classifier.** The framing dictionaries were hand-audited on
+  40 sentences: `frame_promise` is right about 85% of the time, `frame_peril` about
+  65–70% (General Debate speeches list threats, and technology is often one item in
+  the list rather than the threat itself). Report a *trend* in these measures, not a
+  level, and quote the high-precision `tech_security` facet next to it.
+- **VADER does not know this vocabulary.** It scores `cyberattack`, `disinformation`
+  and `deepfake` as neutral, so `*_sentiment` columns understate how negative the
+  modern technology debate is. That is the reason the framing dictionaries exist.
+- **A big coefficient is not a load-bearing feature.** 23 of the 30 strongest word
+  features in the §8 connectivity model are country names, which looks like the
+  `GroupKFold`-by-country design being defeated by the text itself (98.7% of speeches
+  name their own country). It is not: `geonames.py` strips every country name,
+  demonym, region, capital and regional body, and out-of-fold R² moves from 0.835 to
+  0.834. Place names *on their own* are worth +0.03 R² where the full text is worth
+  +0.28. Rank features by coefficient if you like, but measure their contribution by
+  deleting them and refitting — §8.1 of the notebook does this at four levels of
+  strictness, and §10 repeats it for R&D.
+- **Check persistence before claiming a forecast.** R&D intensity has a five-year
+  autocorrelation of 0.974, so a model predicting it five years out scores R² 0.47
+  without forecasting anything. §10 of the notebook runs the same model at t+0, t+5
+  and t+10; the score is flat, which proves it is reading the present. Any
+  "we predicted the future" claim against a slow-moving indicator needs that test.
+- **The R&D panel is a selected sample.** Only ~107 countries report R&D spending at
+  all, and they are richer and more research-active than the rest.
 
 ## Citation
 

@@ -60,7 +60,11 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import MWETokenizer, sent_tokenize, word_tokenize
 
-from un_general_debate_analysis.lexicons import LEXICONS, NEUTRAL_PHRASES
+from un_general_debate_analysis.lexicons import (
+    CO_OCCURRENCE_PAIRS,
+    LEXICONS,
+    NEUTRAL_PHRASES,
+)
 
 # ---------------------------------------------------------------------------
 # Paths and constants
@@ -137,8 +141,12 @@ PRESIDING_OFFICER_SENTENCE = re.compile(
 # neutral ones are visible as the gap between them and the totals.
 REPORTED_SENTIMENTS = ("positive", "negative")
 
-# Topic features exported for the education and technology analysis.
-FOCUS_LEXICONS = ("technology", "education")
+# Every lexicon also gets a 0/1 presence flag and the mean VADER compound
+# score of the sentences that mention it, e.g. ``technology`` and
+# ``technology_sentiment``. Lexicon *pairs* listed in CO_OCCURRENCE_PAIRS get
+# the same treatment for sentences that mention both, e.g.
+# ``technology_frame_peril_sentences``.
+SENTIMENT_LEXICONS: tuple[str, ...] = tuple(LEXICONS)
 
 # The country-year dimensions every output table starts with.
 META_COLUMNS = [
@@ -439,8 +447,9 @@ def analyse_speech(args: tuple[str, int]) -> dict:
     lexicon_totals: Counter[str] = Counter()  # lexicon -> n sentences, any sentiment
     topic_sentiment_sums: dict[str, float] = defaultdict(float)
     topic_sentence_counts: Counter[str] = Counter()
-    overlap_sentiment_sum = 0.0
-    overlap_sentence_count = 0
+    # Same two things for sentences that mention *both* lexicons of a pair
+    pair_sentiment_sums: dict[tuple[str, str], float] = defaultdict(float)
+    pair_sentence_counts: Counter[tuple[str, str]] = Counter()
 
     for sentence in sentences:
         # --- Word tokenisation (Treebank), lemmatisation, phrase merging ---
@@ -468,13 +477,14 @@ def analyse_speech(args: tuple[str, int]) -> dict:
         for lexicon in lexicons_here:
             lexicon_sentences[(lexicon, sentiment)] += 1
             lexicon_totals[lexicon] += 1
-        for lexicon in FOCUS_LEXICONS:
+        for lexicon in SENTIMENT_LEXICONS:
             if lexicon in lexicons_here:
                 topic_sentiment_sums[lexicon] += score
                 topic_sentence_counts[lexicon] += 1
-        if all(lexicon in lexicons_here for lexicon in FOCUS_LEXICONS):
-            overlap_sentiment_sum += score
-            overlap_sentence_count += 1
+        for pair in CO_OCCURRENCE_PAIRS:
+            if all(lexicon in lexicons_here for lexicon in pair):
+                pair_sentiment_sums[pair] += score
+                pair_sentence_counts[pair] += 1
 
     n_sentences = len(sentences)
     n_words = len(words)
@@ -514,19 +524,21 @@ def analyse_speech(args: tuple[str, int]) -> dict:
             result[f"{lexicon}_{sentiment}_sentences"] = lexicon_sentences[(lexicon, sentiment)]
         # Every sentence mentioning the lexicon, neutral ones included
         result[f"{lexicon}_sentences"] = lexicon_totals[lexicon]
-    for lexicon in FOCUS_LEXICONS:
+    for lexicon in SENTIMENT_LEXICONS:
         result[lexicon] = int(topic_sentence_counts[lexicon] > 0)
         result[f"{lexicon}_sentiment"] = (
             topic_sentiment_sums[lexicon] / topic_sentence_counts[lexicon]
             if topic_sentence_counts[lexicon]
             else 0.0
         )
-    result["technology_education"] = int(overlap_sentence_count > 0)
-    result["technology_education_sentiment"] = (
-        overlap_sentiment_sum / overlap_sentence_count
-        if overlap_sentence_count
-        else 0.0
-    )
+    for pair in CO_OCCURRENCE_PAIRS:
+        name = "_".join(pair)
+        count = pair_sentence_counts[pair]
+        result[name] = int(count > 0)
+        result[f"{name}_sentences"] = count
+        result[f"{name}_sentiment"] = (
+            pair_sentiment_sums[pair] / count if count else 0.0
+        )
     return result
 
 
