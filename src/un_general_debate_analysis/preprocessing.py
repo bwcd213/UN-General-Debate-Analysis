@@ -110,7 +110,7 @@ UN_PROCEDURAL_WORDS = [
     "united", "nations", "general", "assembly", "president", "secretary",
     "session", "delegation", "excellency", "distinguished", "madam", "sir",
     "mr", "mrs", "ms", "ladies", "gentlemen", "thank", "also", "would",
-    "must", "shall", "may", "us" , "state" , "country", "people", "world"
+    "must", "shall", "may", "us" , "state" , "country", "people", "world",
 ]
 
 # Sentences that belong to the presiding officer rather than the speaker
@@ -138,7 +138,7 @@ PRESIDING_OFFICER_SENTENCE = re.compile(
 REPORTED_SENTIMENTS = ("positive", "negative")
 
 # Topic features exported for the education and technology analysis.
-FOCUS_LEXICONS = ("technology", "education")
+FOCUS_LEXICONS = ("industry_innovation_infrastructure")
 
 # The country-year dimensions every output table starts with.
 META_COLUMNS = [

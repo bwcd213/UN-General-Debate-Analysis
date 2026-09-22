@@ -50,18 +50,68 @@ THEME_LEXICONS: dict[str, list[str]] = {
 }
 
 # --- One lexicon per Sustainable Development Goal ---
+
 SDG_LEXICONS: dict[str, list[str]] = {
-    "education": [
-        "education", "educational", "school", "schooling", "literacy",
-        "illiteracy", "teacher", "student", "pupil", "university",
-        "learning", "curriculum", "scholarship", "classroom", "teacher training",
-        "vocational training", "skills training", "higher education",
-        "primary education", "secondary education", "early childhood education",
-        "technical education", "inclusive education", "quality education",
-        "distance learning", "online learning", "educational opportunity",
-        "school enrollment", "school enrolment", "dropout", "child education",
-    ],
-    "technology": [
+    "industry_innovation_infrastructure": [
+        # Infrastructure
+        "infrastructure", "resilient infrastructure", "sustainable infrastructure",
+        "inclusive infrastructure", "quality infrastructure",
+        "critical infrastructure", "public infrastructure",
+        "transport infrastructure", "energy infrastructure",
+        "water infrastructure", "digital infrastructure",
+        "rural infrastructure", "urban infrastructure",
+        "infrastructure investment", "infrastructure development",
+        "infrastructure financing", "infrastructure maintenance",
+        "road", "railway", "rail", "port", "airport", "bridge",
+        "transportation", "transport", "logistics", "supply chain",
+        "electricity grid", "power grid", "energy access",
+        "telecommunications", "broadband", "internet connectivity",
+        "communication network",
+
+        # Industrialization and manufacturing
+        "industrialization", "industrialisation", "inclusive industrialization",
+        "sustainable industrialization", "industrial development",
+        "industrial policy", "industrial capacity", "industrial production",
+        "industrial sector", "manufacturing", "manufacturing sector",
+        "manufacturing industry", "factory", "factories",
+        "production capacity", "productive capacity",
+        "value added", "industrial value added",
+        "value chain", "global value chain", "supply chain",
+        "small scale industry", "small-scale industry",
+        "small and medium enterprise", "small and medium enterprises",
+        "small and medium-sized enterprise", "sme", "smes",
+        "enterprise development", "local industry",
+        "resource efficiency", "clean production",
+        "sustainable production", "circular economy",
+
+        # Innovation, research, and technological capacity
+        "innovation", "innovative", "technological innovation",
+        "innovation capacity", "innovation system",
+        "research and development", "research and development spending",
+        "r and d", "r&d", "scientific research",
+        "technology development", "technological development",
+        "technology transfer", "technology diffusion",
+        "technological capability", "technological capacity",
+        "research capacity", "scientific capacity",
+        "research institution", "research laboratory",
+        "patent", "patents", "intellectual property",
+        "startup", "start-up", "entrepreneurship",
+        "digital technology", "information and communication technologies",
+        "ict", "automation", "artificial intelligence",
+        "clean technology", "green technology",
+        "renewable energy technology",
+
+        # SDG 9 target-specific language
+        "access to finance", "industrial finance",
+        "credit for enterprises", "finance for small businesses",
+        "aid for trade", "trade facilitation",
+        "domestic technology development",
+        "upgrading industrial infrastructure",
+        "retrofitting infrastructure",
+        "sustainable and resilient infrastructure",
+
+        # technology
+
         "technology", "computer", "innovation", "research and development",
         "computation", "digital", "digitalisation", "digitalization",
         "information technology", "communication technology", 
@@ -72,9 +122,11 @@ SDG_LEXICONS: dict[str, list[str]] = {
         "technology transfer", "scientific research", "technological development",
         "research capacity", "innovation ecosystem", "startup", "entrepreneurship",
         "ai", "artificial intelligence", "cloud", "network",
-    ],
 
+
+    ],
 }
+
 
 # All lexicons the pipeline will count, in output column order.
 LEXICONS: dict[str, list[str]] = {**THEME_LEXICONS, **SDG_LEXICONS}
