@@ -34,6 +34,7 @@ import json
 import re
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -114,8 +115,12 @@ def _cache_path(name: str) -> Path:
     return EXTERNAL_DIR / f"{name}.csv"
 
 
-def _fetch_json(url: str, timeout: int = 120) -> object:
-    with urllib.request.urlopen(url, timeout=timeout) as response:
+def _fetch_json(url: str, timeout: int = 120) -> Any:
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "un-general-debate-analysis/0.1"},
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -182,7 +187,16 @@ def egdi(refresh: bool = False) -> pd.DataFrame:
     if local.exists() and not refresh:
         rows = pd.read_csv(local, low_memory=False)
     else:
-        rows = pd.DataFrame(_fetch_json(DATA360_URL)["value"])
+        first_page = _fetch_json(DATA360_URL)
+        values = first_page["value"]
+        total = int(first_page.get("count", len(values)))
+        skip = len(values)
+        while skip < total:
+            page = _fetch_json(DATA360_URL.replace("skip=0", f"skip={skip}"))
+            page_values = page["value"]
+            values.extend(page_values)
+            skip += len(page_values)
+        rows = pd.DataFrame(values)
 
     frame = (
         rows.rename(
