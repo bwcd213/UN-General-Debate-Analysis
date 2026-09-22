@@ -207,7 +207,7 @@ CO_OCCURRENCE_PAIRS: list[tuple[str, str]] = [
     ("technology", "frame_promise"),
     ("technology", "frame_peril"),
     ("technology", "theme_trust"),
-    ("technology", "theme_multilateralism"),
+    ("technology", "theme_transformation"),
     ("technology", "education"),
 ]
 
