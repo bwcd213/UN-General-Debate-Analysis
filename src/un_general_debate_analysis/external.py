@@ -57,6 +57,9 @@ WDI_INDICATORS: dict[str, str] = {
     "patents_residents": "IP.PAT.RESD",          # Patent applications, residents
     "hightech_exports_pct": "TX.VAL.TECH.MF.ZS", # High-technology exports (% of manufactured exports)
     "ict_service_exports_pct": "BX.GSR.CCIS.ZS", # ICT service exports (% of service exports)
+        # --- energy indicators ---
+    "energy_use_per_capita": "EG.USE.PCAP.KG.OE",
+    "electricity_access_pct": "EG.ELC.ACCS.ZS",
 }
 
 WORLD_BANK_URL = (

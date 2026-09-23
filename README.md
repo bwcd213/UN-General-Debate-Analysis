@@ -4,7 +4,7 @@ Fundamentals of Data Science — Assignment 1. We analyse the **UN General Debat
 (UNGDC), 1946–2025** (80 sessions, ~11k speeches) against this year's General Assembly
 theme, *"Restoring trust, managing transformation"*, and a chosen Sustainable
 Development Goal.
-
+Sentiment lexicon — positive/negative words (this can be borrowed from an existing one like Bing)
 This repo holds the **preprocessing pipeline**: it turns the raw speech files into three
 analysis-ready CSVs, keyed by `(country_code, year)` so they merge cleanly with external
 country-year datasets (World Happiness Report, trade data, Our World in Data, …).
