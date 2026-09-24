@@ -251,10 +251,13 @@ def world_happiness(verbose: bool = False) -> pd.DataFrame:
     lookup = _unsd_name_to_code()
 
     def resolve(name: str) -> str | None:
-        key = _normalise_country_name(name)
-        if key in WHR_NAME_FIXES:
-            return WHR_NAME_FIXES[key]
-        return lookup.get(key)
+        # Try the unstripped name first: normalising drops a trailing
+        # "(...)", which would turn both "Congo (Brazzaville)" and
+        # "Congo (Kinshasa)" into "congo" and map them to the same code.
+        for key in (str(name).lower().strip(), _normalise_country_name(name)):
+            if key in WHR_NAME_FIXES:
+                return WHR_NAME_FIXES[key]
+        return lookup.get(_normalise_country_name(name))
 
     frame = raw.rename(
         columns={

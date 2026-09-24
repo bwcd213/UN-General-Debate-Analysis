@@ -128,9 +128,8 @@ LEXICONS: dict[str, list[str]] = {
 # ``technology_frame_peril`` (0/1), ``technology_frame_peril_sentences``
 # and ``technology_frame_peril_sentiment``.
 CO_OCCURRENCE_PAIRS: list[tuple[str, str]] = [
-    ("technology", "frame_promise"),
-    ("technology", "frame_peril"),
-    ("technology", "theme_trust"),
+    ("digital_infrastructure", "frame_promise"),
+    ("internet_and_access", "frame_promise"),
 ]
 
 # Phrases that would otherwise produce false matches. They are merged into
